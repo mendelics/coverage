@@ -3,36 +3,45 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 	"time"
 )
 
 func main() {
 	t0 := time.Now()
 
-	// Coverage vcf
+	// Args
 	vcf := flag.String("vcf", "", "VCF file with coverage (GATK-format).")
 	bed := flag.String("bed", "", "BED file with coverage (Mosdepth-format).")
+	sample := flag.String("sample", "no_sample_id", "Sample ID")
 	flag.Parse()
 
-	geneCoverageMap := make(map[string]Coverage)
-	sampleNames := make([]string, 0)
+	targets := make(map[string][]TargetCoverage)
 
 	switch {
+	// No coverage file
 	case *vcf == "" && *bed == "":
 		log.Fatalln("No vcf or bed informed. Run `./coverage --vcf <COVERAGE_VCF> or ./coverage --bed <COVERAGE_BED>")
+
+	// Too many coverage files
 	case *vcf != "" && *bed != "":
 		log.Fatalln("vcf and bed are mutually exclusive. Run `./coverage --vcf <COVERAGE_VCF> or ./coverage --bed <COVERAGE_BED>")
+
+	// GATK-derived coverage
 	case *vcf != "":
-		// Intersect coverage with transcripts
-		geneCoverageMap, sampleNames = getCoverage(*vcf)
+		targets = parseGatkVcf(*vcf)
+
+	// Mosdepth-derived coverage
 	case *bed != "":
-		// Intersect coverage with transcripts
-		getMosdepth(*bed)
-		log.Printf("Executed in %.2f seconds\n", time.Since(t0).Seconds())
-		os.Exit(0)
+		targets = parseMosdepthBed(*bed)
+
 	}
 
+	// Intersect coverage with transcripts
+	geneCoverageMap := getGeneCoverage(targets)
+
 	// Output coverage to JSON file
-	outputToJSON(sampleNames, geneCoverageMap)
+	outputToJSON(*sample, geneCoverageMap)
+
+	// Time
+	log.Printf("Executed in %.2f seconds\n", time.Since(t0).Seconds())
 }

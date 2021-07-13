@@ -4,23 +4,13 @@ import (
 	"compress/gzip"
 	_ "embed"
 	"encoding/csv"
-	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 )
 
-type Gene struct {
-	chr    string
-	start  int
-	end    int
-	ensg   string
-	symbol string
-}
-
-type Bed struct {
+type TargetCoverage struct {
 	chr   string
 	start int
 	end   int
@@ -30,56 +20,7 @@ type Bed struct {
 	x30   int
 }
 
-//go:embed genes.bed
-var genesFile string
-
-func getMosdepth(coverageBed string) {
-	targets := parseMosdepthBed(coverageBed)
-
-	geneLines := strings.Split(string(genesFile), "\n")
-
-	for _, line := range geneLines {
-		fields := strings.Split(line, "\t")
-		if len(fields) != 5 {
-			continue
-		}
-
-		start, err := strconv.Atoi(fields[1])
-		if err != nil {
-			log.Fatalf("error parsing start, %v", err)
-		}
-
-		end, err := strconv.Atoi(fields[2])
-		if err != nil {
-			log.Fatalf("error parsing end, %v", err)
-		}
-
-		gene := Gene{
-			chr:    fields[0],
-			start:  start,
-			end:    end,
-			ensg:   fields[3],
-			symbol: fields[4],
-		}
-
-		var overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x int
-
-		for _, target := range targets[gene.chr] {
-			if !(gene.end < target.start || gene.start > target.end) {
-				overlapCount++
-				totalTargets += target.end - target.start
-				totalCovered5x += target.x5
-				totalCovered10x += target.x10
-				totalCovered20x += target.x20
-				totalCovered30x += target.x30
-			}
-		}
-
-		fmt.Printf("%s\t%s\tCount: %d\tTotal Bases: %d\tCoverage 5x: %d\t10x: %d\t20x: %d\t30x: %d\n", gene.ensg, gene.symbol, overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x)
-	}
-}
-
-func parseMosdepthBed(coverageBed string) map[string][]Bed {
+func parseMosdepthBed(coverageBed string) map[string][]TargetCoverage {
 	coverageFile, err := os.Open(coverageBed)
 	if err != nil {
 		log.Fatal("unable to open coverage file")
@@ -96,7 +37,7 @@ func parseMosdepthBed(coverageBed string) map[string][]Bed {
 	tsvReader.Comma = '\t'
 	tsvReader.Comment = '#'
 
-	targets := make(map[string][]Bed)
+	targets := make(map[string][]TargetCoverage)
 
 	record, err := tsvReader.Read()
 	for err == nil {
@@ -138,7 +79,7 @@ func parseMosdepthBed(coverageBed string) map[string][]Bed {
 			log.Fatal("unable to parse bed file", err, record)
 		}
 
-		bed := Bed{
+		bed := TargetCoverage{
 			chr:   record[0],
 			start: start,
 			end:   end,
@@ -152,7 +93,7 @@ func parseMosdepthBed(coverageBed string) map[string][]Bed {
 			beds = append(beds, bed)
 			targets[bed.chr] = beds
 		} else {
-			targets[bed.chr] = []Bed{bed}
+			targets[bed.chr] = []TargetCoverage{bed}
 		}
 
 		record, err = tsvReader.Read()

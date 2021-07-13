@@ -1,62 +1,105 @@
-// +build integration
+package main
 
-package coverage
+import "testing"
 
-import (
-	"io/ioutil"
-	"os"
-	"path"
-	"testing"
-
-	jsoniter "github.com/json-iterator/go"
-)
-
-func TestCoverage001(t *testing.T) {
-	expectedIdentifier := "TEST-00"
-	expectedGlobalTotalBases := 102734451
-	expectedGlobalCoverage := 0.981938
-	expectedCoverageCFTRPct := 1.000000
-
-	sampleFolder := path.Join(os.Getenv("HOME"), "vsa2", "data", "samples")
-
-	// InputVcf
-	samplePath := path.Join(sampleFolder, "GRCh38_sample_coverage.vcf.gz")
-
-	// OutputJsonl
-	outputJSON := path.Join(sampleFolder, "TEST-00_vsa_coverage.json")
-
-	// Delete old OutputJson
-	_ = os.Remove(outputJSON)
-
-	GetCoverage(samplePath, sampleFolder, "")
-
-	jsonFile, err := ioutil.ReadFile(outputJSON)
-	if err != nil {
-		t.Errorf("unexpected err %v on output JSON read", err)
+func TestCoveragePerGeneFromBed(t *testing.T) {
+	tt := []struct {
+		ENSG               string
+		Symbol             string
+		TotalTargetedBases int
+		BasesCovered5x     int
+		BasesCovered10x    int
+		BasesCovered20x    int
+		BasesCovered30x    int
+	}{
+		{"ENSG00000001626", "CFTR", 4443, 4443, 4443, 4301, 3970},
+		{"ENSG00000012048", "BRCA1", 5797, 5797, 5797, 5797, 5416},
+		{"ENSG00000277027", "RMRP", 0, 0, 0, 0, 0},
+		{"ENSG00000172062", "SMN1", 900, 900, 900, 890, 771},
+		{"ENSG00000198947", "DMD", 11621, 11621, 11466, 10891, 9093},
 	}
 
-	var exported PanelCoverage
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	for i, test := range tt {
+		targets := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
 
-	err = json.Unmarshal(jsonFile, &exported)
-	if err != nil {
-		t.Errorf("unexpected err %v on JSON unmarshall", err)
+		resultMap := getGeneCoverage(targets)
+
+		gene := resultMap[test.ENSG]
+
+		if gene.Symbol != test.Symbol {
+			t.Errorf("expected %s symbol, got %s on gene %s, test number %d", test.Symbol, gene.Symbol, gene.ENSG, i)
+		}
+
+		if gene.TotalTargetedBases != test.TotalTargetedBases {
+			t.Errorf("expected %d total bases for gene %s, got %d on test number %d", test.TotalTargetedBases, test.Symbol, gene.TotalTargetedBases, i)
+		}
+
+		if gene.BasesCovered5x != test.BasesCovered5x {
+			t.Errorf("expected %d bases covered at 5x for gene %s, got %d on test number %d", test.BasesCovered5x, test.Symbol, gene.BasesCovered5x, i)
+		}
+
+		if gene.BasesCovered10x != test.BasesCovered10x {
+			t.Errorf("expected %d bases covered at 10x for gene %s, got %d on test number %d", test.BasesCovered10x, test.Symbol, gene.BasesCovered10x, i)
+		}
+
+		if gene.BasesCovered20x != test.BasesCovered20x {
+			t.Errorf("expected %d bases covered at 20x for gene %s, got %d on test number %d", test.BasesCovered20x, test.Symbol, gene.BasesCovered20x, i)
+		}
+
+		if gene.BasesCovered30x != test.BasesCovered30x {
+			t.Errorf("expected %d bases covered at 30x for gene %s, got %d on test number %d", test.BasesCovered30x, test.Symbol, gene.BasesCovered30x, i)
+		}
+
+	}
+}
+
+func TestCoveragePerGeneFromVcf(t *testing.T) {
+	tt := []struct {
+		ENSG               string
+		Symbol             string
+		TotalTargetedBases int
+		BasesCovered5x     int
+		BasesCovered10x    int
+		BasesCovered20x    int
+		BasesCovered30x    int
+	}{
+		{"ENSG00000001626", "CFTR", 4443, 0, 4389, 0, 0},
+		{"ENSG00000012048", "BRCA1", 5658, 0, 5612, 0, 0},
+		{"ENSG00000277027", "RMRP", 0, 0, 0, 0, 0},
+		{"ENSG00000172062", "SMN1", 900, 0, 882, 0, 0},
+		{"ENSG00000198947", "DMD", 11213, 0, 11049, 0, 0},
 	}
 
-	cftrTotalBases := exported.PerGeneCoverage["ENSG00000001626"].TotalBases
-	cftrCoveredBases := exported.PerGeneCoverage["ENSG00000001626"].CoveredBases
-	pctCFTR := float64(cftrCoveredBases) / float64(cftrTotalBases)
+	for i, test := range tt {
+		targets := parseGatkVcf("example_gatk_coverage.vcf.gz")
 
-	if expectedIdentifier != exported.Identifier {
-		t.Errorf("expected identifier %s, got %s", expectedIdentifier, exported.Identifier)
-	}
-	if expectedGlobalTotalBases != exported.GlobalTotalBases {
-		t.Errorf("expected global total bases %d, got %d", expectedGlobalTotalBases, exported.GlobalTotalBases)
-	}
-	if expectedGlobalCoverage-exported.GlobalCoverage > 0.001 || expectedGlobalCoverage-exported.GlobalCoverage < -0.001 {
-		t.Errorf("expected global coverage %f, got %f", expectedGlobalCoverage, exported.GlobalCoverage)
-	}
-	if expectedCoverageCFTRPct-pctCFTR > 0.001 || expectedCoverageCFTRPct-pctCFTR < -0.001 {
-		t.Errorf("expected CFTR coverage %f, got %f", expectedCoverageCFTRPct, pctCFTR)
+		resultMap := getGeneCoverage(targets)
+
+		gene := resultMap[test.ENSG]
+
+		if gene.Symbol != test.Symbol {
+			t.Errorf("expected %s symbol, got %s on gene %s, test number %d", test.Symbol, gene.Symbol, gene.ENSG, i)
+		}
+
+		if gene.TotalTargetedBases != test.TotalTargetedBases {
+			t.Errorf("expected %d total bases for gene %s, got %d on test number %d", test.TotalTargetedBases, test.Symbol, gene.TotalTargetedBases, i)
+		}
+
+		if gene.BasesCovered5x != test.BasesCovered5x {
+			t.Errorf("expected %d bases covered at 5x for gene %s, got %d on test number %d", test.BasesCovered5x, test.Symbol, gene.BasesCovered5x, i)
+		}
+
+		if gene.BasesCovered10x != test.BasesCovered10x {
+			t.Errorf("expected %d bases covered at 10x for gene %s, got %d on test number %d", test.BasesCovered10x, test.Symbol, gene.BasesCovered10x, i)
+		}
+
+		if gene.BasesCovered20x != test.BasesCovered20x {
+			t.Errorf("expected %d bases covered at 20x for gene %s, got %d on test number %d", test.BasesCovered20x, test.Symbol, gene.BasesCovered20x, i)
+		}
+
+		if gene.BasesCovered30x != test.BasesCovered30x {
+			t.Errorf("expected %d bases covered at 30x for gene %s, got %d on test number %d", test.BasesCovered30x, test.Symbol, gene.BasesCovered30x, i)
+		}
+
 	}
 }

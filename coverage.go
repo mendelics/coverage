@@ -1,140 +1,75 @@
 package main
 
 import (
-	"bytes"
+	_ "embed"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path"
+	"strconv"
 	"strings"
-
-	"github.com/biogo/hts/bgzf"
-	"github.com/brentp/bix"
-	"github.com/brentp/irelate"
-	"github.com/brentp/irelate/interfaces"
-	"github.com/brentp/irelate/parsers"
 )
 
-// getCoverage parses the GATK-derived coverage VCF and returns a map
-func getCoverage(coverageVcfFile string) (map[string]Coverage, []string) {
-	transcriptsPath := path.Join(os.Getenv("HOME"), "coverage", "transcripts_GRCh38.bed.gz")
+type Gene struct {
+	chr    string
+	start  int
+	end    int
+	ensg   string
+	symbol string
+}
 
-	// chr1	358856	366052	ENSG00000236601
-	qCoverageBed, err := bix.New(transcriptsPath, 0)
-	if err != nil {
-		log.Fatalf("error generating indexing %v", err)
-	}
+//go:embed genes.bed
+var genesFile string
 
+func getGeneCoverage(targets map[string][]TargetCoverage) map[string]Coverage {
+	geneLines := strings.Split(string(genesFile), "\n")
 	geneCoverageMap := make(map[string]Coverage)
+	for _, line := range geneLines {
+		fields := strings.Split(line, "\t")
+		if len(fields) != 5 {
+			continue
+		}
 
-	// covStream is the streaming of coverage intervals
-	covStream, sampleNames := prepareVcfToStream(coverageVcfFile)
+		start, err := strconv.Atoi(fields[1])
+		if err != nil {
+			log.Fatalf("error parsing start, %v", err)
+		}
 
-	// iterate over coverage intervals
-	for interval := range irelate.PIRelate(4000, 40000, covStream, false, nil, qCoverageBed) {
+		end, err := strconv.Atoi(fields[2])
+		if err != nil {
+			log.Fatalf("error parsing end, %v", err)
+		}
 
-		if len(interval.Related()) != 0 {
+		gene := Gene{
+			chr:    fields[0],
+			start:  start,
+			end:    end,
+			ensg:   fields[3],
+			symbol: fields[4],
+		}
 
-			// coverage for specific interval
-			intervalCoverageMap, err := sumCoverage(interval)
-			if err != nil {
-				log.Println(err)
-				continue
+		var overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x int
+
+		for _, target := range targets[gene.chr] {
+			if !(gene.end < target.start || gene.start > target.end) {
+				overlapCount++
+				totalTargets += target.end - target.start
+				totalCovered5x += target.x5
+				totalCovered10x += target.x10
+				totalCovered20x += target.x20
+				totalCovered30x += target.x30
 			}
-
-			// update coverage map that will be used in exported JSON
-			geneCoverageMap = updateCoverage(geneCoverageMap, intervalCoverageMap)
-		}
-	}
-
-	geneCoverageWithPctMap := make(map[string]Coverage)
-
-	for ensg, val := range geneCoverageMap {
-		if val.TotalBases != 0 {
-			val.CoveragePct = float64(val.CoveredBases) / float64(val.TotalBases)
-		}
-		geneCoverageWithPctMap[ensg] = val
-	}
-
-	return geneCoverageWithPctMap, sampleNames
-}
-
-func prepareVcfToStream(coverageVcfFile string) (interfaces.RelatableIterator, []string) {
-	// Check coverage from GATK-generated coverage VCF
-	rdr, err := ioutil.ReadFile(coverageVcfFile)
-	if err != nil {
-		log.Fatalf("error reading file %v", err)
-	}
-
-	byteRdr := bytes.NewReader(rdr)
-
-	// Presumes VCF with denormalized variants ("bcftools norm -m -any"), bgzipped and tabix indexed
-	qrdr, err := bgzf.NewReader(byteRdr, 0)
-	if err != nil {
-		log.Fatalf("error opening query file %s: %v", coverageVcfFile, err)
-	}
-
-	// Parse VCF file with vcfgo to use in irelate
-	covStream, vcfRdr, err := parsers.VCFIterator(qrdr)
-	if err != nil {
-		log.Fatalf("error parsing VCF query file %s: %v", coverageVcfFile, err)
-	}
-
-	return covStream, vcfRdr.Header.SampleNames
-}
-
-func sumCoverage(interval interfaces.Relatable) (map[string]Coverage, error) {
-
-	// Parse VCF line
-	vcfLineStr := fmt.Sprintf("%v", interval)
-	cov, err := parseCoverageVcfLine(vcfLineStr)
-	if err != nil {
-		log.Println("Failed to parse vcf line", vcfLineStr, err)
-		return nil, err
-	}
-
-	intervalCoverageMap := make(map[string]Coverage)
-
-	for _, relatedInterval := range interval.Related() {
-		// chr1    358856  365704  ENSG00000223181;ENST00000411249;NONCODING;-;RNU6-1199P
-		relatedStr := fmt.Sprintf("%v", relatedInterval)
-		bedFields := strings.Split(relatedStr, "\t")
-		info := strings.Split(bedFields[3], ";")
-
-		// ENSG00000223181;ENST00000411249;NONCODING;-;RNU6-1199P
-		intervalCoverageMap[info[0]] = Coverage{
-			ENSG:         info[0],
-			Symbol:       info[4],
-			TotalBases:   cov[0],
-			CoveredBases: (cov[0] - cov[1]),
 		}
 
-	}
-
-	return intervalCoverageMap, nil
-}
-
-func updateCoverage(geneCoverageMap map[string]Coverage, intervalCoverageMap map[string]Coverage) map[string]Coverage {
-
-	for ensg, intervalCov := range intervalCoverageMap {
-		if geneCoverage, exists := geneCoverageMap[ensg]; exists {
-			geneCoverage.ENSG = ensg
-			geneCoverage.Symbol = intervalCov.Symbol
-			geneCoverage.TotalBases += intervalCov.TotalBases
-			geneCoverage.CoveredBases += intervalCov.CoveredBases
-			geneCoverageMap[ensg] = geneCoverage
-
-		} else {
-			newCov := Coverage{
-				ENSG:         ensg,
-				Symbol:       intervalCov.Symbol,
-				TotalBases:   intervalCov.TotalBases,
-				CoveredBases: intervalCov.CoveredBases,
-			}
-			geneCoverageMap[ensg] = newCov
-
+		geneCoverageMap[gene.ensg] = Coverage{
+			ENSG:               gene.ensg,
+			Symbol:             gene.symbol,
+			TotalTargetedBases: totalTargets,
+			BasesCovered5x:     totalCovered5x,
+			BasesCovered10x:    totalCovered10x,
+			BasesCovered20x:    totalCovered20x,
+			BasesCovered30x:    totalCovered30x,
 		}
+
+		fmt.Printf("%s\t%s\tCount: %d\tTotal Bases: %d\tCoverage 5x: %d\t10x: %d\t20x: %d\t30x: %d\n", gene.ensg, gene.symbol, overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x)
 	}
 	return geneCoverageMap
 }
