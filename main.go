@@ -3,9 +3,13 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"time"
 )
 
 func main() {
+	t0 := time.Now()
+
 	// Coverage vcf
 	vcf := flag.String("vcf", "", "VCF file with coverage (GATK-format).")
 	bed := flag.String("bed", "", "BED file with coverage (Mosdepth-format).")
@@ -25,6 +29,8 @@ func main() {
 	case *bed != "":
 		// Intersect coverage with transcripts
 		getMosdepth(*bed)
+		log.Printf("Executed in %.2f seconds\n", time.Since(t0).Seconds())
+		os.Exit(0)
 	}
 
 	// Output coverage to JSON file

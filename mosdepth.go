@@ -2,16 +2,14 @@ package main
 
 import (
 	"compress/gzip"
+	_ "embed"
 	"encoding/csv"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/markbates/pkger"
 )
 
 type Gene struct {
@@ -32,19 +30,11 @@ type Bed struct {
 	x30   int
 }
 
+//go:embed genes.bed
+var genesFile string
+
 func getMosdepth(coverageBed string) {
 	targets := parseMosdepthBed(coverageBed)
-
-	f, err := pkger.Open("genes.bed")
-	if err != nil {
-		log.Fatalln("couldn't find genes.bed")
-	}
-	defer f.Close()
-
-	genesFile, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatal("unable to open genes file")
-	}
 
 	geneLines := strings.Split(string(genesFile), "\n")
 
@@ -85,7 +75,7 @@ func getMosdepth(coverageBed string) {
 			}
 		}
 
-		fmt.Printf("%s\t%s\tCount: %d\tTotal Bases: %d\tCoverage 5x: %d\t10x: %d\t20x: %d\t30x: %d", gene.ensg, gene.symbol, overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x)
+		fmt.Printf("%s\t%s\tCount: %d\tTotal Bases: %d\tCoverage 5x: %d\t10x: %d\t20x: %d\t30x: %d\n", gene.ensg, gene.symbol, overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x)
 	}
 }
 
