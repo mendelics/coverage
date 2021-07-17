@@ -21,7 +21,7 @@ type PanelCoverage struct {
 	GlobalCoveredBases10x int
 	GlobalCoveredBases20x int
 	GlobalCoveredBases30x int
-	Genes                 map[string]Coverage
+	PerGeneCoverage       map[string]Coverage
 }
 
 // Coverage data
@@ -47,7 +47,7 @@ func outputToJSON(sample string, geneCoverageMap map[string]Coverage, globalTota
 
 	export := PanelCoverage{
 		Identifier:            sample,
-		Genes:                 geneCoverageMap,
+		PerGeneCoverage:       geneCoverageMap,
 		GlobalTotalBases:      globalTotalBases,
 		GlobalCoveredBases5x:  globalCoveredBases5x,
 		GlobalCoveredBases10x: globalCoveredBases10x,
