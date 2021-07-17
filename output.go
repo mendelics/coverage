@@ -14,23 +14,30 @@ import (
 
 // PanelCoverage contains all gene coverages
 type PanelCoverage struct {
-	Identifier string
-	Genes      map[string]Coverage
+	Identifier            string
+	GitVersion            string
+	GlobalTotalBases      int
+	GlobalCoveredBases5x  int
+	GlobalCoveredBases10x int
+	GlobalCoveredBases20x int
+	GlobalCoveredBases30x int
+	Genes                 map[string]Coverage
 }
 
 // Coverage data
 type Coverage struct {
-	ENSG               string
-	Symbol             string
-	TotalTargetedBases int
-	BasesCovered5x     int
-	BasesCovered10x    int
-	BasesCovered20x    int
-	BasesCovered30x    int
+	ENSG            string
+	Symbol          string
+	TotalBases      int // total targeted bases
+	CoveredBases    int // 	copy of BasesCovered10x for backwards compatibility
+	BasesCovered5x  int
+	BasesCovered10x int
+	BasesCovered20x int
+	BasesCovered30x int
 }
 
 // outputToJSON outputs coverage to JSON file
-func outputToJSON(sample string, geneCoverageMap map[string]Coverage) {
+func outputToJSON(sample string, geneCoverageMap map[string]Coverage, globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x int) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	var b bytes.Buffer
@@ -39,8 +46,13 @@ func outputToJSON(sample string, geneCoverageMap map[string]Coverage) {
 	outputFilePath := path.Join(os.Getenv("HOME"), "coverage", (fmt.Sprintf("%s_coverage.json.gz", sample)))
 
 	export := PanelCoverage{
-		Identifier: sample,
-		Genes:      geneCoverageMap,
+		Identifier:            sample,
+		Genes:                 geneCoverageMap,
+		GlobalTotalBases:      globalTotalBases,
+		GlobalCoveredBases5x:  globalCoveredBases5x,
+		GlobalCoveredBases10x: globalCoveredBases10x,
+		GlobalCoveredBases20x: globalCoveredBases20x,
+		GlobalCoveredBases30x: globalCoveredBases30x,
 	}
 
 	toWriteJSON, err := json.Marshal(export)

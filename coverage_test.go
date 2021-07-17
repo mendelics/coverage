@@ -20,7 +20,7 @@ func TestCoveragePerGeneFromBed(t *testing.T) {
 	}
 
 	for i, test := range tt {
-		targets := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
+		targets, _, _, _, _, _ := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
 
 		resultMap := getGeneCoverage(targets)
 
@@ -30,8 +30,8 @@ func TestCoveragePerGeneFromBed(t *testing.T) {
 			t.Errorf("expected %s symbol, got %s on gene %s, test number %d", test.Symbol, gene.Symbol, gene.ENSG, i)
 		}
 
-		if gene.TotalTargetedBases != test.TotalTargetedBases {
-			t.Errorf("expected %d total bases for gene %s, got %d on test number %d", test.TotalTargetedBases, test.Symbol, gene.TotalTargetedBases, i)
+		if gene.TotalBases != test.TotalTargetedBases {
+			t.Errorf("expected %d total bases for gene %s, got %d on test number %d", test.TotalTargetedBases, test.Symbol, gene.TotalBases, i)
 		}
 
 		if gene.BasesCovered5x != test.BasesCovered5x {
@@ -63,15 +63,15 @@ func TestCoveragePerGeneFromVcf(t *testing.T) {
 		BasesCovered20x    int
 		BasesCovered30x    int
 	}{
-		{"ENSG00000001626", "CFTR", 4443, 0, 4389, 0, 0},
-		{"ENSG00000012048", "BRCA1", 5658, 0, 5612, 0, 0},
+		{"ENSG00000001626", "CFTR", 4443, 0, 4443, 0, 0},
+		{"ENSG00000012048", "BRCA1", 5658, 0, 5658, 0, 0},
 		{"ENSG00000277027", "RMRP", 0, 0, 0, 0, 0},
-		{"ENSG00000172062", "SMN1", 900, 0, 882, 0, 0},
-		{"ENSG00000198947", "DMD", 11213, 0, 11049, 0, 0},
+		{"ENSG00000172062", "SMN1", 900, 0, 900, 0, 0},
+		{"ENSG00000198947", "DMD", 11213, 0, 11213, 0, 0},
 	}
 
 	for i, test := range tt {
-		targets := parseGatkVcf("example_gatk_coverage.vcf.gz")
+		targets, _, _ := parseGatkVcf("example_gatk_coverage.vcf.gz")
 
 		resultMap := getGeneCoverage(targets)
 
@@ -81,8 +81,8 @@ func TestCoveragePerGeneFromVcf(t *testing.T) {
 			t.Errorf("expected %s symbol, got %s on gene %s, test number %d", test.Symbol, gene.Symbol, gene.ENSG, i)
 		}
 
-		if gene.TotalTargetedBases != test.TotalTargetedBases {
-			t.Errorf("expected %d total bases for gene %s, got %d on test number %d", test.TotalTargetedBases, test.Symbol, gene.TotalTargetedBases, i)
+		if gene.TotalBases != test.TotalTargetedBases {
+			t.Errorf("expected %d total bases for gene %s, got %d on test number %d", test.TotalTargetedBases, test.Symbol, gene.TotalBases, i)
 		}
 
 		if gene.BasesCovered5x != test.BasesCovered5x {

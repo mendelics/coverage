@@ -16,6 +16,7 @@ func main() {
 	flag.Parse()
 
 	targets := make(map[string][]TargetCoverage)
+	var globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x int
 
 	switch {
 	// No coverage file
@@ -28,11 +29,11 @@ func main() {
 
 	// GATK-derived coverage
 	case *vcf != "":
-		targets = parseGatkVcf(*vcf)
+		targets, globalTotalBases, globalCoveredBases10x = parseGatkVcf(*vcf)
 
 	// Mosdepth-derived coverage
 	case *bed != "":
-		targets = parseMosdepthBed(*bed)
+		targets, globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x = parseMosdepthBed(*bed)
 
 	}
 
@@ -40,7 +41,7 @@ func main() {
 	geneCoverageMap := getGeneCoverage(targets)
 
 	// Output coverage to JSON file
-	outputToJSON(*sample, geneCoverageMap)
+	outputToJSON(*sample, geneCoverageMap, globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x)
 
 	// Time
 	log.Printf("Executed in %.2f seconds\n", time.Since(t0).Seconds())

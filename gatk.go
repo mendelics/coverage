@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func parseGatkVcf(coverageVcf string) map[string][]TargetCoverage {
+func parseGatkVcf(coverageVcf string) (map[string][]TargetCoverage, int, int) {
 	coverageFile, err := os.Open(coverageVcf)
 	if err != nil {
 		log.Fatal("unable to open coverage file")
@@ -29,6 +29,7 @@ func parseGatkVcf(coverageVcf string) map[string][]TargetCoverage {
 	tsvReader.Comment = '#'
 
 	targets := make(map[string][]TargetCoverage)
+	var globalTotalBases, globalCoveredBases10x int
 
 	record, err := tsvReader.Read()
 	for err == nil {
@@ -59,11 +60,14 @@ func parseGatkVcf(coverageVcf string) map[string][]TargetCoverage {
 			log.Fatal("unable to parse vcf file", err, record)
 		}
 
+		globalTotalBases += end - position + 1
+		globalCoveredBases10x += end - position + 1 - lowCoverage
+
 		vcf := TargetCoverage{
 			chr:   record[0],
 			start: position - 1,
 			end:   end,
-			x10:   end - position - 1 - lowCoverage,
+			x10:   end - position + 1 - lowCoverage,
 		}
 
 		if beds, exists := targets[vcf.chr]; exists {
@@ -80,7 +84,7 @@ func parseGatkVcf(coverageVcf string) map[string][]TargetCoverage {
 		log.Fatal("error parsing coverage bed file", err, record)
 	}
 
-	return targets
+	return targets, globalTotalBases, globalCoveredBases10x
 }
 
 func getLowCoverage(coverageField string) (int, error) {

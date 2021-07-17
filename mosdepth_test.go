@@ -7,12 +7,6 @@ func TestParseCoverageBed(t *testing.T) {
 		chr     string
 		targets int
 	}{
-		// {"ENSG00000001626", 0},
-		// {"ENSG00000012048", 0},
-		// {"ENSG00000277027", 0},
-		// {"ENSG00000172062", 0},
-		// {"ENSG00000198947", 0},
-
 		{"chr1", 22061},
 		{"chr2", 16644},
 		{"chrX", 7315},
@@ -20,9 +14,30 @@ func TestParseCoverageBed(t *testing.T) {
 		{"chrM", 13},
 	}
 
-	for i, test := range tt {
-		resultMap := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
+	var expectedGlobal = 36726635
+	var expected5x = 36642861
+	var expected10x = 36200125
+	var expected20x = 34990586
+	var expected30x = 32564305
 
+	for i, test := range tt {
+		resultMap, globalTotal, global5x, global10x, global20x, global30x := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
+
+		if globalTotal != expectedGlobal {
+			t.Errorf("expected globalTotal %d, got %d on test number %d", expectedGlobal, globalTotal, i)
+		}
+		if global5x != expected5x {
+			t.Errorf("expected global5x %d, got %d on test number %d", expected5x, global5x, i)
+		}
+		if global10x != expected10x {
+			t.Errorf("expected global10x %d, got %d on test number %d", expected10x, global10x, i)
+		}
+		if global20x != expected20x {
+			t.Errorf("expected global20x %d, got %d on test number %d", expected20x, global20x, i)
+		}
+		if global30x != expected30x {
+			t.Errorf("expected global30x %d, got %d on test number %d", expected30x, global30x, i)
+		}
 		if len(resultMap[test.chr]) != test.targets {
 			t.Errorf("expected %d targets for chr %s, got %d on test number %d", test.targets, test.chr, len(resultMap[test.chr]), i)
 		}

@@ -7,12 +7,6 @@ func TestParseCoverageVcf(t *testing.T) {
 		chr     string
 		targets int
 	}{
-		// {"ENSG00000001626", 0},
-		// {"ENSG00000012048", 0},
-		// {"ENSG00000277027", 0},
-		// {"ENSG00000172062", 0},
-		// {"ENSG00000198947", 0},
-
 		{"chr1", 19712},
 		{"chr2", 14730},
 		{"chrX", 6769},
@@ -20,9 +14,18 @@ func TestParseCoverageVcf(t *testing.T) {
 		{"chrM", 0},
 	}
 
-	for i, test := range tt {
-		resultMap := parseGatkVcf("example_gatk_coverage.vcf.gz")
+	var expectedGlobal = 33167129
+	var expected10x = 32369680
 
+	for i, test := range tt {
+		resultMap, globalTotal, global10x := parseGatkVcf("example_gatk_coverage.vcf.gz")
+
+		if globalTotal != expectedGlobal {
+			t.Errorf("expected globalTotal %d, got %d on test number %d", expectedGlobal, globalTotal, i)
+		}
+		if global10x != expected10x {
+			t.Errorf("expected global10x %d, got %d on test number %d", expected10x, global10x, i)
+		}
 		if len(resultMap[test.chr]) != test.targets {
 			t.Errorf("expected %d targets for chr %s, got %d on test number %d", test.targets, test.chr, len(resultMap[test.chr]), i)
 		}

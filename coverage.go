@@ -60,13 +60,14 @@ func getGeneCoverage(targets map[string][]TargetCoverage) map[string]Coverage {
 		}
 
 		geneCoverageMap[gene.ensg] = Coverage{
-			ENSG:               gene.ensg,
-			Symbol:             gene.symbol,
-			TotalTargetedBases: totalTargets,
-			BasesCovered5x:     totalCovered5x,
-			BasesCovered10x:    totalCovered10x,
-			BasesCovered20x:    totalCovered20x,
-			BasesCovered30x:    totalCovered30x,
+			ENSG:            gene.ensg,
+			Symbol:          gene.symbol,
+			TotalBases:      totalTargets,
+			CoveredBases:    totalCovered10x,
+			BasesCovered5x:  totalCovered5x,
+			BasesCovered10x: totalCovered10x,
+			BasesCovered20x: totalCovered20x,
+			BasesCovered30x: totalCovered30x,
 		}
 
 		fmt.Printf("%s\t%s\tCount: %d\tTotal Bases: %d\tCoverage 5x: %d\t10x: %d\t20x: %d\t30x: %d\n", gene.ensg, gene.symbol, overlapCount, totalTargets, totalCovered5x, totalCovered10x, totalCovered20x, totalCovered30x)

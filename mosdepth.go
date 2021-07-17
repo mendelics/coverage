@@ -20,7 +20,7 @@ type TargetCoverage struct {
 	x30   int
 }
 
-func parseMosdepthBed(coverageBed string) map[string][]TargetCoverage {
+func parseMosdepthBed(coverageBed string) (map[string][]TargetCoverage, int, int, int, int, int) {
 	coverageFile, err := os.Open(coverageBed)
 	if err != nil {
 		log.Fatal("unable to open coverage file")
@@ -38,6 +38,7 @@ func parseMosdepthBed(coverageBed string) map[string][]TargetCoverage {
 	tsvReader.Comment = '#'
 
 	targets := make(map[string][]TargetCoverage)
+	var globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x int
 
 	record, err := tsvReader.Read()
 	for err == nil {
@@ -79,6 +80,12 @@ func parseMosdepthBed(coverageBed string) map[string][]TargetCoverage {
 			log.Fatal("unable to parse bed file", err, record)
 		}
 
+		globalTotalBases += end - start
+		globalCoveredBases5x += x5
+		globalCoveredBases10x += x10
+		globalCoveredBases20x += x20
+		globalCoveredBases30x += x30
+
 		bed := TargetCoverage{
 			chr:   record[0],
 			start: start,
@@ -103,5 +110,5 @@ func parseMosdepthBed(coverageBed string) map[string][]TargetCoverage {
 		log.Fatal("error parsing coverage bed file", err, record)
 	}
 
-	return targets
+	return targets, globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x
 }
