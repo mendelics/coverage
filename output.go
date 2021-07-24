@@ -6,35 +6,63 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
-	"path"
 
 	jsoniter "github.com/json-iterator/go"
 )
 
+// PanelCoverage contains all gene coverages
+type PanelCoverage struct {
+	Identifier            string
+	GitVersion            string
+	GlobalTotalBases      int
+	GlobalCoveredBases5x  int
+	GlobalCoveredBases10x int
+	GlobalCoveredBases20x int
+	GlobalCoveredBases30x int
+	PerGeneCoverage       map[string]Coverage
+}
+
+// Coverage data
+type Coverage struct {
+	ENSG            string
+	Symbol          string
+	TotalBases      int // total targeted bases
+	CoveredBases    int // 	copy of BasesCovered10x for backwards compatibility
+	BasesCovered5x  int
+	BasesCovered10x int
+	BasesCovered20x int
+	BasesCovered30x int
+}
+
 // outputToJSON outputs coverage to JSON file
-func outputToJSON(sampleNames []string, geneCoverageMap map[string]Coverage) {
+func outputToJSON(sample string, geneCoverageMap map[string]Coverage, globalTotalBases, globalCoveredBases5x, globalCoveredBases10x, globalCoveredBases20x, globalCoveredBases30x int) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	for _, identifier := range sampleNames {
-		var b bytes.Buffer
-		w := gzip.NewWriter(&b)
+	var b bytes.Buffer
+	w := gzip.NewWriter(&b)
 
-		outputFilePath := path.Join(os.Getenv("HOME"), "coverage", (fmt.Sprintf("%s_coverage.json.gz", identifier)))
+	outputFilePath := fmt.Sprintf("%s_coverage.json.gz", sample)
 
-		export := PanelCoverage{
-			Identifier: identifier,
-			Genes:      geneCoverageMap,
-		}
+	export := PanelCoverage{
+		Identifier:            sample,
+		PerGeneCoverage:       geneCoverageMap,
+		GlobalTotalBases:      globalTotalBases,
+		GlobalCoveredBases5x:  globalCoveredBases5x,
+		GlobalCoveredBases10x: globalCoveredBases10x,
+		GlobalCoveredBases20x: globalCoveredBases20x,
+		GlobalCoveredBases30x: globalCoveredBases30x,
+	}
 
-		toWriteJSON, err := json.Marshal(export)
-		if err != nil {
-			log.Fatalf("failed convert struct FileRepresentation of sample %s into json; got %v", identifier, err)
-		}
+	toWriteJSON, err := json.Marshal(export)
+	if err != nil {
+		log.Fatalf("failed convert struct FileRepresentation of sample %s into json; got %v", sample, err)
+	}
 
-		w.Write(toWriteJSON)
-		w.Close() // You must close this first to flush the bytes to the buffer.
+	w.Write(toWriteJSON)
+	w.Close() // You must close this first to flush the bytes to the buffer.
 
-		ioutil.WriteFile(outputFilePath, b.Bytes(), 0644)
+	err = ioutil.WriteFile(outputFilePath, b.Bytes(), 0644)
+	if err != nil {
+		log.Fatalf(err.Error())
 	}
 }
