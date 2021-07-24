@@ -23,10 +23,11 @@ func getGeneCoverage(targets map[string][]TargetCoverage) map[string]Coverage {
 	geneLines := strings.Split(string(genesFile), "\n")
 	geneCoverageMap := make(map[string]Coverage)
 	for _, line := range geneLines {
-		fields := strings.Split(line, "\t")
-		if len(fields) != 5 {
+		if line == "" {
 			continue
 		}
+
+		fields := strings.Split(line, "\t")
 
 		start, err := strconv.Atoi(fields[1])
 		if err != nil {

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
-	"path"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -43,7 +41,7 @@ func outputToJSON(sample string, geneCoverageMap map[string]Coverage, globalTota
 	var b bytes.Buffer
 	w := gzip.NewWriter(&b)
 
-	outputFilePath := path.Join(os.Getenv("HOME"), "coverage", (fmt.Sprintf("%s_coverage.json.gz", sample)))
+	outputFilePath := fmt.Sprintf("%s_coverage.json.gz", sample)
 
 	export := PanelCoverage{
 		Identifier:            sample,
@@ -63,5 +61,8 @@ func outputToJSON(sample string, geneCoverageMap map[string]Coverage, globalTota
 	w.Write(toWriteJSON)
 	w.Close() // You must close this first to flush the bytes to the buffer.
 
-	ioutil.WriteFile(outputFilePath, b.Bytes(), 0644)
+	err = ioutil.WriteFile(outputFilePath, b.Bytes(), 0644)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 }

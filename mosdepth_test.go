@@ -15,10 +15,10 @@ func TestParseCoverageBed(t *testing.T) {
 	}
 
 	var expectedGlobal = 36726635
-	var expected5x = 36642861
-	var expected10x = 36200125
-	var expected20x = 34990586
-	var expected30x = 32564305
+	var expected5x = 36462766
+	var expected10x = 36290670
+	var expected20x = 35708523
+	var expected30x = 34512655
 
 	for i, test := range tt {
 		resultMap, globalTotal, global5x, global10x, global20x, global30x := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
