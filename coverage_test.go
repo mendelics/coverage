@@ -20,7 +20,7 @@ func TestCoveragePerGeneFromBed(t *testing.T) {
 	}
 
 	for i, test := range tt {
-		targets, _, _, _, _, _ := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
+		targets, _, _, _, _, _ := parseMosdepthBed("samples/example_mosdepth_coverage.bed.gz")
 
 		resultMap := getGeneCoverage(targets)
 
@@ -71,7 +71,7 @@ func TestCoveragePerGeneFromVcf(t *testing.T) {
 	}
 
 	for i, test := range tt {
-		targets, _, _ := parseGatkVcf("example_gatk_coverage.vcf.gz")
+		targets, _, _ := parseGatkVcf("samples/example_gatk_coverage.vcf.gz")
 
 		resultMap := getGeneCoverage(targets)
 

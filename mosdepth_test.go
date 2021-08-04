@@ -21,7 +21,7 @@ func TestParseCoverageBed(t *testing.T) {
 	var expected30x = 34512655
 
 	for i, test := range tt {
-		resultMap, globalTotal, global5x, global10x, global20x, global30x := parseMosdepthBed("example_mosdepth_coverage.bed.gz")
+		resultMap, globalTotal, global5x, global10x, global20x, global30x := parseMosdepthBed("samples/example_mosdepth_coverage.bed.gz")
 
 		if globalTotal != expectedGlobal {
 			t.Errorf("expected globalTotal %d, got %d on test number %d", expectedGlobal, globalTotal, i)
