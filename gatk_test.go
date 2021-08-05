@@ -18,7 +18,7 @@ func TestParseCoverageVcf(t *testing.T) {
 	var expected10x = 32369680
 
 	for i, test := range tt {
-		resultMap, globalTotal, global10x := parseGatkVcf("example_gatk_coverage.vcf.gz")
+		resultMap, globalTotal, global10x := parseGatkVcf("samples/example_gatk_coverage.vcf.gz")
 
 		if globalTotal != expectedGlobal {
 			t.Errorf("expected globalTotal %d, got %d on test number %d", expectedGlobal, globalTotal, i)
